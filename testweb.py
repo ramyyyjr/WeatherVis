@@ -1,11 +1,10 @@
 # merged_app.py
-import os
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
+import requests  
+import io
 
 # ----------------------
 # 1️⃣ Page config
@@ -325,4 +324,5 @@ elif plot_choice == "Vitesse du vent — heatmap":
     plot_wind_heatmap()
 elif plot_choice == "Top 20 pays - vitesse du vent":
     plot_top20_wind()
+
 
