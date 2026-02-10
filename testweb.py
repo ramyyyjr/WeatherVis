@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("🌡️ Dashboard Climat — Analyse Température et Météo")
+st.title(" Weather Dashboard — Analyse Température et Météo")
 
 # ======================
 # 2️⃣ Load full dataset (all columns)
@@ -89,25 +89,25 @@ st.sidebar.header("📊 Visualisations")
 
 # List of all visualizations
 viz_list = [
-    "📈 Température moyenne par année",
-    "📊 Distribution des températures",
-    "🌡️ Top 10 villes les plus chaudes",
-    "❄️ Top 10 villes les plus froides",
-    "🌡️ Évolution d'une ville",
-    "📅 Température moyenne par mois",
-    "🔥 Top 30 villes × mois (heatmap)",
-    "📦 Distribution par mois (boxplot)",
-    "🌧️ Précipitations moyennes par mois",
-    "🔶 Densité température par année (hexbin)",
-    "🗻 Température (mois × année) - contour",
-    "❄️ Jours ≤ 0°C par année",
-    "☀️ Durée du soleil par mois",
-    "💨 Vitesse du vent — heatmap",
-    "🏆 Top 20 pays - vitesse du vent"
+    "Température moyenne par année",
+    "Distribution des températures",
+    "Top 10 villes les plus chaudes",
+    "Top 10 villes les plus froides",
+    "Évolution d'une ville",
+    "Température moyenne par mois",
+    "Top 30 villes × mois (heatmap)",
+    "Distribution par mois (boxplot)",
+    "Précipitations moyennes par mois",
+    "Densité température par année (hexbin)",
+    "Température (mois × année) - contour",
+    "Jours ≤ 0°C par année",
+    "Durée du soleil par mois",
+    "Vitesse du vent — heatmap",
+     "Top 20 pays - vitesse du vent"
 ]
 
 # Select all checkbox
-select_all = st.sidebar.checkbox("✅ Sélectionner toutes les visualisations", value=True)
+select_all = st.sidebar.checkbox("SELECTIONNER TOUS", value=True)
 
 # Dict to store which visualisations are checked
 viz_checked = {}
@@ -120,7 +120,7 @@ for v in viz_list:
 # ======================
 # 5️⃣ Dataset preview
 # ======================
-st.subheader("📋 Aperçu du Dataset")
+st.subheader(" Aperçu du Dataset")
 st.dataframe(df.head(50), use_container_width=True, height=450)
 st.caption(f"🔢 {df.shape[0]:,} lignes × {df.shape[1]} colonnes")
 
@@ -152,33 +152,33 @@ def filter_city(city_name):
 # ======================
 
 # 📈 Température moyenne par année
-if viz_checked["📈 Température moyenne par année"]:
-    st.markdown("### 📈 Température moyenne par année")
+if viz_checked[" Température moyenne par année"]:
+    st.markdown("###  Température moyenne par année")
     yearly = df.groupby("year")[TEMP_COL].mean().reset_index()
     fig = px.line(yearly, x="year", y=TEMP_COL, markers=True, labels={TEMP_COL:"Température (°C)", "year":"Année"})
     st.plotly_chart(fig, use_container_width=True)
 
 # 📊 Distribution des températures
-if viz_checked["📊 Distribution des températures"]:
-    st.markdown("### 📊 Distribution des températures")
+if viz_checked[" Distribution des températures"]:
+    st.markdown("###  Distribution des températures")
     fig = px.histogram(df, x=TEMP_COL, nbins=40, labels={TEMP_COL:"Température (°C)"})
     st.plotly_chart(fig, use_container_width=True)
 
 # 🌡️ Top 10 villes les plus chaudes
-if viz_checked["🌡️ Top 10 villes les plus chaudes"]:
-    st.markdown("### 🌡️ Top 10 villes les plus chaudes")
+if viz_checked[" Top 10 villes les plus chaudes"]:
+    st.markdown("###  Top 10 villes les plus chaudes")
     top_hot = df.groupby("capital")[TEMP_COL].mean().sort_values(ascending=False).head(10)
     st.bar_chart(top_hot)
 
 # ❄️ Top 10 villes les plus froides
-if viz_checked["❄️ Top 10 villes les plus froides"]:
-    st.markdown("### ❄️ Top 10 villes les plus froides")
+if viz_checked[" Top 10 villes les plus froides"]:
+    st.markdown("###  Top 10 villes les plus froides")
     top_cold = df.groupby("capital")[TEMP_COL].mean().sort_values().head(10)
     st.bar_chart(top_cold)
 
 # 🌡️ Évolution d'une ville
-if viz_checked["🌡️ Évolution d'une ville"]:
-    st.markdown("### 🌡️ Évolution d'une ville")
+if viz_checked[" Évolution d'une ville"]:
+    st.markdown("###  Évolution d'une ville")
     city_sel = st.sidebar.selectbox("Choisir une ville pour évolution", df["capital"].dropna().unique())
     dcity = filter_city(city_sel)
     if not dcity.empty:
@@ -186,14 +186,14 @@ if viz_checked["🌡️ Évolution d'une ville"]:
         st.plotly_chart(fig, use_container_width=True)
 
 # 📅 Température moyenne par mois
-if viz_checked["📅 Température moyenne par mois"]:
-    st.markdown("### 📅 Température moyenne par mois")
+if viz_checked[" Température moyenne par mois"]:
+    st.markdown("###  Température moyenne par mois")
     monthly = df.groupby("month")[TEMP_COL].mean()
     st.line_chart(monthly)
 
 # 🔥 Top 30 villes × mois (heatmap)
-if viz_checked["🔥 Top 30 villes × mois (heatmap)"]:
-    st.markdown("### 🔥 Top 30 villes × mois (heatmap)")
+if viz_checked[" Top 30 villes × mois (heatmap)"]:
+    st.markdown("###  Top 30 villes × mois (heatmap)")
     pivot = df.pivot_table(values=TEMP_COL, index="capital", columns="month", aggfunc="mean")
     top30 = pivot.loc[pivot.mean(axis=1).sort_values(ascending=False).head(30).index]
     fig, ax = plt.subplots(figsize=(14, 8))
@@ -201,21 +201,21 @@ if viz_checked["🔥 Top 30 villes × mois (heatmap)"]:
     st.pyplot(fig)
 
 # 📦 Distribution par mois (boxplot)
-if viz_checked["📦 Distribution par mois (boxplot)"]:
-    st.markdown("### 📦 Distribution par mois (boxplot)")
+if viz_checked[" Distribution par mois (boxplot)"]:
+    st.markdown("###  Distribution par mois (boxplot)")
     fig, ax = plt.subplots(figsize=(12,5))
     sns.boxplot(x=df["month"], y=df[TEMP_COL], palette="Set2", ax=ax)
     st.pyplot(fig)
 
 # 🌧️ Précipitations moyennes par mois
-if viz_checked["🌧️ Précipitations moyennes par mois"] and PRECIP_COL:
-    st.markdown("### 🌧️ Précipitations moyennes par mois")
+if viz_checked[" Précipitations moyennes par mois"] and PRECIP_COL:
+    st.markdown("###  Précipitations moyennes par mois")
     monthly_precip = df.groupby("month")[PRECIP_COL].mean()
     st.bar_chart(monthly_precip)
 
 # 🔶 Densité température par année (hexbin)
-if viz_checked["🔶 Densité température par année (hexbin)"]:
-    st.markdown("### 🔶 Densité température par année (hexbin)")
+if viz_checked[" Densité température par année (hexbin)"]:
+    st.markdown("###  Densité température par année (hexbin)")
     fig, ax = plt.subplots(figsize=(12,5))
     hb = ax.hexbin(df["year"], df[TEMP_COL], gridsize=25, cmap='YlOrRd', mincnt=1)
     fig.colorbar(hb, ax=ax, label='Nombre d\'observations')
@@ -223,8 +223,8 @@ if viz_checked["🔶 Densité température par année (hexbin)"]:
     st.pyplot(fig)
 
 # 🗻 Température (mois × année) - contour
-if viz_checked["🗻 Température (mois × année) - contour"]:
-    st.markdown("### 🗻 Température (mois × année) - contour")
+if viz_checked[" Température (mois × année) - contour"]:
+    st.markdown("###  Température (mois × année) - contour")
     pivot = df.pivot_table(values=TEMP_COL, index="year", columns="month", aggfunc="mean")
     if not pivot.empty:
         fig, ax = plt.subplots(figsize=(12,7))
@@ -234,15 +234,15 @@ if viz_checked["🗻 Température (mois × année) - contour"]:
         st.pyplot(fig)
 
 # ❄️ Jours ≤ 0°C par année
-if viz_checked["❄️ Jours ≤ 0°C par année"]:
-    st.markdown("### ❄️ Jours ≤ 0°C par année")
+if viz_checked[" Jours ≤ 0°C par année"]:
+    st.markdown("###  Jours ≤ 0°C par année")
     df['is_freezing'] = df[TEMP_COL] <= 0
     freezing = df.groupby('year')['is_freezing'].sum()
     st.bar_chart(freezing)
 
 # ☀️ Durée du soleil par mois
-if viz_checked["☀️ Durée du soleil par mois"] and DAYLIGHT_COL:
-    st.markdown("### ☀️ Durée du soleil par mois")
+if viz_checked[" Durée du soleil par mois"] and DAYLIGHT_COL:
+    st.markdown("### Durée du soleil par mois")
     monthly_sun = df.groupby('month')[DAYLIGHT_COL].mean()
     st.line_chart(monthly_sun)
 
@@ -255,8 +255,8 @@ if viz_checked["💨 Vitesse du vent — heatmap"] and WIND_COL:
     st.pyplot(fig)
 
 # 🏆 Top 20 pays - vitesse du vent
-if viz_checked["🏆 Top 20 pays - vitesse du vent"] and WIND_COL:
-    st.markdown("### 🏆 Top 20 pays - vitesse du vent")
+if viz_checked["Top 20 pays - vitesse du vent"] and WIND_COL:
+    st.markdown("###  Top 20 pays - vitesse du vent")
     country_col = 'country' if 'country' in df.columns else 'capital'
     top20 = df.groupby(country_col)[WIND_COL].mean().sort_values(ascending=False).head(20)
     st.bar_chart(top20)
@@ -265,4 +265,5 @@ if viz_checked["🏆 Top 20 pays - vitesse du vent"] and WIND_COL:
 # Footer
 # ======================
 st.markdown("---")
-st.caption("🌍 Weather Dashboard — Streamlit | Data Science Project")
+st.caption("🌍 Weather Dashboard | Data Visualisation Project | Réalise par : Bouzidi Ramy & Benarbia Imed Eddine [4eme Ingénieur Informatique - Data Science] ")
+
