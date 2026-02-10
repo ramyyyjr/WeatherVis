@@ -81,50 +81,26 @@ if df.empty:
 TEMP_COL = "temp_mean_c_approx"
 
 # ======================
-# 4️⃣ Sidebar filters
+# 4️⃣ Sidebar — Filters & Visualisation Controls
 # ======================
 st.sidebar.header("🎛️ Filtres")
 
+# ✅ ONLY country filter
 countries = st.sidebar.multiselect(
     "🌍 Pays",
-    options=sorted(df["country"].dropna().unique()),
-    default=None
-)
-
-capitals = st.sidebar.multiselect(
-    "🏙️ Capitales",
-    options=sorted(df["capital"].dropna().unique()),
-    default=None
+    options=sorted(df["country"].dropna().unique())
 )
 
 if countries:
     df = df[df["country"].isin(countries)]
-if capitals:
-    df = df[df["capital"].isin(capitals)]
 
-# ======================
-# 5️⃣ Dataset Preview (BIGGER TABLE ✅)
-# ======================
-st.subheader("📋 Aperçu du Dataset")
+st.sidebar.markdown("---")
+st.sidebar.header("📊 Visualisations")
 
-st.dataframe(
-    df.head(50),
-    use_container_width=True,
-    height=450,
-    column_config={
-        col: st.column_config.Column(width="medium")
-        for col in df.columns[:15]   # 👈 SHOW 15 COLUMNS
-    }
+select_all = st.sidebar.checkbox(
+    "✅ Sélectionner toutes les visualisations",
+    value=True
 )
-
-st.caption(f"🔢 {df.shape[0]:,} lignes × {df.shape[1]} colonnes")
-
-# ======================
-# 6️⃣ Visualization Controls
-# ======================
-st.subheader("📊 Visualisations")
-
-select_all = st.checkbox("✅ Sélectionner toutes les visualisations", value=True)
 
 if select_all:
     show_temp_trend = True
@@ -132,13 +108,26 @@ if select_all:
     show_precip = True
     show_wind = True
 else:
-    show_temp_trend = st.checkbox("📈 Évolution de la température")
-    show_temp_dist = st.checkbox("📊 Distribution de la température")
-    show_precip = st.checkbox("🌧️ Précipitations")
-    show_wind = st.checkbox("💨 Vent")
+    show_temp_trend = st.sidebar.checkbox("📈 Évolution température")
+    show_temp_dist = st.sidebar.checkbox("📊 Distribution température")
+    show_precip = st.sidebar.checkbox("🌧️ Précipitations")
+    show_wind = st.sidebar.checkbox("💨 Vent")
 
 # ======================
-# 7️⃣ Visualizations
+# 5️⃣ Dataset Preview (BIGGER TABLE)
+# ======================
+st.subheader("📋 Aperçu du Dataset")
+
+st.dataframe(
+    df.head(50),
+    use_container_width=True,
+    height=450
+)
+
+st.caption(f"🔢 {df.shape[0]:,} lignes × {df.shape[1]} colonnes")
+
+# ======================
+# 6️⃣ Visualisations
 # ======================
 if show_temp_trend:
     st.markdown("### 📈 Évolution de la température moyenne")
@@ -192,7 +181,7 @@ if show_wind:
         st.warning("Colonnes de vent manquantes.")
 
 # ======================
-# 8️⃣ Footer
+# 7️⃣ Footer
 # ======================
 st.markdown("---")
 st.caption("🌍 Weather Dashboard — Streamlit | Data Science Project")
