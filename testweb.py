@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("🌡️ Dashboard Climat — Analyse Température et Météo")
+st.title("Dashboard Climat — Analyse Température et Météo")
 
 # ======================
 # 2️⃣ Load full dataset (all columns)
@@ -107,7 +107,7 @@ viz_list = [
 ]
 
 # Select all checkbox
-select_all = st.sidebar.checkbox("✅ Sélectionner toutes les visualisations", value=True)
+select_all = st.sidebar.checkbox("✅ SELECTIONNER TOUS ", value=True)
 
 # Dict to store which visualisations are checked
 viz_checked = {}
@@ -120,7 +120,7 @@ for v in viz_list:
 # ======================
 # 5️⃣ Dataset preview
 # ======================
-st.subheader("📋 Aperçu du Dataset")
+st.subheader("Aperçu du Dataset")
 st.dataframe(df.head(50), use_container_width=True, height=450)
 st.caption(f"🔢 {df.shape[0]:,} lignes × {df.shape[1]} colonnes")
 
@@ -266,3 +266,4 @@ if viz_checked["🏆 Top 20 pays - vitesse du vent"] and WIND_COL:
 # ======================
 st.markdown("---")
 st.caption("🌍 Weather Dashboard | Data Visualisation Project | Réalise par : Bouzidi Ramy & Benarbia Imed Eddine [4eme Ingénieur Informatique - Data Science] ")
+
