@@ -7,6 +7,9 @@ import seaborn as sns
 import plotly.express as px
 import requests
 import io
+import gdown
+import os
+
 
 # ======================
 # 1️⃣ Page config
@@ -21,29 +24,38 @@ st.set_page_config(
 st.title("🌡️ Dashboard Climat — Analyse Température et Météo")
 
 # ======================
-# 2️⃣ Load Dataset (Google Drive)
+# 2️⃣ Load Dataset (Google Drive FOLDER)
 # ======================
 @st.cache_data(show_spinner=True)
-def load_data(url, needed_columns=None, chunk_size=100_000):
-    response = requests.get(url)
-    if response.status_code != 200:
+def load_data_from_folder(folder_id, needed_columns=None):
+    folder_path = "data"
+
+    # Download folder (only once because of cache)
+    if not os.path.exists(folder_path):
+        gdown.download_folder(
+            id=folder_id,
+            output=folder_path,
+            quiet=False,
+            use_cookies=False
+        )
+
+    csv_files = [
+        os.path.join(folder_path, f)
+        for f in os.listdir(folder_path)
+        if f.endswith(".csv")
+    ]
+
+    if not csv_files:
         return pd.DataFrame()
 
-    chunks = []
-    for chunk in pd.read_csv(
-        io.StringIO(response.content.decode("utf-8")),
-        chunksize=chunk_size,
-        low_memory=False,
-        on_bad_lines="skip"
-    ):
+    dfs = []
+    for file in csv_files:
+        df_part = pd.read_csv(file, low_memory=False, on_bad_lines="skip")
         if needed_columns:
-            chunk = chunk[[c for c in needed_columns if c in chunk.columns]]
-        chunks.append(chunk)
+            df_part = df_part[[c for c in needed_columns if c in df_part.columns]]
+        dfs.append(df_part)
 
-    if not chunks:
-        return pd.DataFrame()
-
-    df = pd.concat(chunks, ignore_index=True)
+    df = pd.concat(dfs, ignore_index=True)
 
     # Parse date
     if "date" in df.columns:
@@ -54,12 +66,10 @@ def load_data(url, needed_columns=None, chunk_size=100_000):
 
     return df
 
-
 # ======================
-# 3️⃣ Dataset URL
+# 3️⃣ Dataset FOLDER ID
 # ======================
-FILE_ID = "1Lxy0FxQ4KkM2hNWp8I6v_W_4HHnczWZs"
-URL = f"https://drive.google.com/uc?export=download&id={FILE_ID}"
+FOLDER_ID = "1diUPY7F_xY-Cez6fzS67Km_SD1xZsONy"
 
 NEEDED_COLS = [
     "date", "capital", "country",
@@ -67,10 +77,10 @@ NEEDED_COLS = [
     "precip_mm", "windspeed_10m", "windgusts_10m", "daylight_hours"
 ]
 
-df = load_data(URL, NEEDED_COLS)
+df = load_data_from_folder(FOLDER_ID, NEEDED_COLS)
 
 if df.empty:
-    st.error("❌ Dataset is empty. Check Google Drive sharing permissions.")
+    st.error("❌ Dataset is empty. No CSV files found in the folder.")
     st.stop()
 
 TEMP_COL = "temp_mean_c_approx"
@@ -208,3 +218,4 @@ elif plot_choice == "Top 20 pays - vitesse du vent" and WIND_COL:
     country_col = "country" if "country" in df.columns else "capital"
     top20 = df.groupby(country_col)[WIND_COL].mean().sort_values(ascending=False).head(20)
     st.bar_chart(top20)
+
