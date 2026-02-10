@@ -1,10 +1,10 @@
-# merged_app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
+import matplotlib.pyplot as plt
+import requests
+import io
 import gdown
 import os
 
@@ -21,7 +21,7 @@ st.set_page_config(
 st.title("🌡️ Dashboard Climat — Analyse Température et Météo")
 
 # ======================
-# 2️⃣ Load Dataset (Google Drive FOLDER)
+# 2️⃣ Load Dataset (Google Drive Folder)
 # ======================
 @st.cache_data(show_spinner=True)
 def load_data_from_folder(folder_id, needed_columns=None):
@@ -62,7 +62,7 @@ def load_data_from_folder(folder_id, needed_columns=None):
     return df
 
 # ======================
-# 3️⃣ Dataset FOLDER ID
+# 3️⃣ Dataset config
 # ======================
 FOLDER_ID = "1diUPY7F_xY-Cez6fzS67Km_SD1xZsONy"
 
@@ -75,7 +75,7 @@ NEEDED_COLS = [
 df = load_data_from_folder(FOLDER_ID, NEEDED_COLS)
 
 if df.empty:
-    st.error("❌ Dataset is empty. No CSV files found in the folder.")
+    st.error("❌ Dataset is empty. Check Google Drive sharing.")
     st.stop()
 
 TEMP_COL = "temp_mean_c_approx"
@@ -83,147 +83,116 @@ TEMP_COL = "temp_mean_c_approx"
 # ======================
 # 4️⃣ Sidebar filters
 # ======================
-st.sidebar.header("🔎 Filtres")
+st.sidebar.header("🎛️ Filtres")
 
-cities = np.insert(df["capital"].dropna().unique(), 0, "Toutes")
-city = st.sidebar.selectbox("Ville :", cities)
+countries = st.sidebar.multiselect(
+    "🌍 Pays",
+    options=sorted(df["country"].dropna().unique()),
+    default=None
+)
 
-year_min, year_max = int(df["year"].min()), int(df["year"].max())
-year_range = st.sidebar.slider("Années :", year_min, year_max, (year_min, year_max))
+capitals = st.sidebar.multiselect(
+    "🏙️ Capitales",
+    options=sorted(df["capital"].dropna().unique()),
+    default=None
+)
 
-def filter_df(data):
-    d = data[
-        (data["year"] >= year_range[0]) &
-        (data["year"] <= year_range[1])
-    ]
-    if city != "Toutes":
-        d = d[d["capital"] == city]
-    return d
-
-dff = filter_df(df)
-
-st.subheader("Aperçu des données")
-st.dataframe(dff.head())
+if countries:
+    df = df[df["country"].isin(countries)]
+if capitals:
+    df = df[df["capital"].isin(capitals)]
 
 # ======================
-# 5️⃣ Column detection
+# 5️⃣ Dataset Preview (BIGGER TABLE ✅)
 # ======================
-def find_col(keys):
-    for c in df.columns:
-        for k in keys:
-            if k in c.lower():
-                return c
-    return None
+st.subheader("📋 Aperçu du Dataset")
 
-PRECIP_COL = find_col(["precip"])
-DAYLIGHT_COL = find_col(["daylight", "sun"])
-WIND_COL = find_col(["windspeed"])
+st.dataframe(
+    df.head(50),
+    use_container_width=True,
+    height=450,
+    column_config={
+        col: st.column_config.Column(width="medium")
+        for col in df.columns[:15]   # 👈 SHOW 15 COLUMNS
+    }
+)
 
-# ======================
-# 6️⃣ Sidebar checkboxes
-# ======================
-st.sidebar.header("📊 Visualisations")
-
-show_dist = st.sidebar.checkbox("Distribution des températures")
-show_yearly = st.sidebar.checkbox("Température moyenne par année")
-show_hot = st.sidebar.checkbox("Top 10 villes les plus chaudes")
-show_cold = st.sidebar.checkbox("Top 10 villes les plus froides")
-show_city = st.sidebar.checkbox("Évolution d'une ville")
-show_monthly = st.sidebar.checkbox("Température moyenne par mois")
-show_heatmap = st.sidebar.checkbox("Top 30 villes × mois (heatmap)")
-show_box = st.sidebar.checkbox("Distribution par mois (boxplot)")
-show_precip = st.sidebar.checkbox("Précipitations moyennes par mois")
-show_hex = st.sidebar.checkbox("Densité température par année")
-show_contour = st.sidebar.checkbox("Température (mois × année)")
-show_freeze = st.sidebar.checkbox("Jours ≤ 0°C par année")
-show_daylight = st.sidebar.checkbox("Durée du soleil par mois")
-show_wind_heat = st.sidebar.checkbox("Vitesse du vent — heatmap")
-show_wind_top = st.sidebar.checkbox("Top 20 pays - vitesse du vent")
+st.caption(f"🔢 {df.shape[0]:,} lignes × {df.shape[1]} colonnes")
 
 # ======================
-# 7️⃣ Visualisations
+# 6️⃣ Visualization Controls
 # ======================
-if show_dist:
-    st.subheader("Distribution des températures")
-    fig = px.histogram(dff, x=TEMP_COL, nbins=50)
-    st.plotly_chart(fig, use_container_width=True)
+st.subheader("📊 Visualisations")
 
-if show_yearly:
-    st.subheader("Température moyenne par année")
-    yearly = dff.groupby("year")[TEMP_COL].mean().reset_index()
-    fig = px.line(yearly, x="year", y=TEMP_COL, markers=True)
-    st.plotly_chart(fig, use_container_width=True)
+select_all = st.checkbox("✅ Sélectionner toutes les visualisations", value=True)
 
-if show_hot:
-    st.subheader("Top 10 villes les plus chaudes")
-    st.bar_chart(df.groupby("capital")[TEMP_COL].mean().sort_values(ascending=False).head(10))
+if select_all:
+    show_temp_trend = True
+    show_temp_dist = True
+    show_precip = True
+    show_wind = True
+else:
+    show_temp_trend = st.checkbox("📈 Évolution de la température")
+    show_temp_dist = st.checkbox("📊 Distribution de la température")
+    show_precip = st.checkbox("🌧️ Précipitations")
+    show_wind = st.checkbox("💨 Vent")
 
-if show_cold:
-    st.subheader("Top 10 villes les plus froides")
-    st.bar_chart(df.groupby("capital")[TEMP_COL].mean().sort_values().head(10))
-
-if show_city:
-    st.subheader("Évolution d'une ville")
-    city_sel = st.selectbox("Ville :", df["capital"].dropna().unique(), key="city_plot")
-    fig = px.line(df[df["capital"] == city_sel], x="date", y=TEMP_COL)
-    st.plotly_chart(fig, use_container_width=True)
-
-if show_monthly:
-    st.subheader("Température moyenne par mois")
-    st.line_chart(dff.groupby("month")[TEMP_COL].mean())
-
-if show_heatmap:
-    st.subheader("Top 30 villes × mois (heatmap)")
-    pivot = df.pivot_table(TEMP_COL, "capital", "month", "mean")
-    top30 = pivot.loc[pivot.mean(axis=1).sort_values(ascending=False).head(30).index]
-    fig, ax = plt.subplots(figsize=(14, 8))
-    sns.heatmap(top30, cmap="coolwarm", ax=ax)
-    st.pyplot(fig)
-
-if show_box:
-    st.subheader("Distribution par mois (boxplot)")
-    fig, ax = plt.subplots(figsize=(12, 5))
-    sns.boxplot(x=dff["month"], y=dff[TEMP_COL], ax=ax)
-    st.pyplot(fig)
-
-if show_precip and PRECIP_COL:
-    st.subheader("Précipitations moyennes par mois")
-    st.bar_chart(df.groupby("month")[PRECIP_COL].mean())
-
-if show_hex:
-    st.subheader("Densité température par année")
-    fig, ax = plt.subplots()
-    ax.hexbin(df["year"], df[TEMP_COL], gridsize=25)
-    st.pyplot(fig)
-
-if show_contour:
-    st.subheader("Température (mois × année)")
-    pivot = df.pivot_table(TEMP_COL, "year", "month", "mean")
-    fig, ax = plt.subplots()
-    ax.contourf(pivot.columns, pivot.index, pivot.values, levels=20)
-    st.pyplot(fig)
-
-if show_freeze:
-    st.subheader("Jours ≤ 0°C par année")
-    st.bar_chart((df[TEMP_COL] <= 0).groupby(df["year"]).sum())
-
-if show_daylight and DAYLIGHT_COL:
-    st.subheader("Durée du soleil par mois")
-    st.line_chart(df.groupby("month")[DAYLIGHT_COL].mean())
-
-if show_wind_heat and WIND_COL:
-    st.subheader("Vitesse du vent — heatmap")
-    pivot = df.pivot_table(WIND_COL, "year", "month", "mean")
-    fig, ax = plt.subplots()
-    sns.heatmap(pivot, cmap="Blues", ax=ax)
-    st.pyplot(fig)
-
-if show_wind_top and WIND_COL:
-    st.subheader("Top 20 pays - vitesse du vent")
-    country_col = "country" if "country" in df.columns else "capital"
-    st.bar_chart(
-        df.groupby(country_col)[WIND_COL]
-        .mean()
-        .sort_values(ascending=False)
-        .head(20)
+# ======================
+# 7️⃣ Visualizations
+# ======================
+if show_temp_trend:
+    st.markdown("### 📈 Évolution de la température moyenne")
+    df_trend = df.groupby("date", as_index=False)[TEMP_COL].mean()
+    fig = px.line(
+        df_trend,
+        x="date",
+        y=TEMP_COL,
+        labels={"date": "Date", TEMP_COL: "Température (°C)"}
     )
+    st.plotly_chart(fig, use_container_width=True)
+
+if show_temp_dist:
+    st.markdown("### 📊 Distribution de la température")
+    fig = px.histogram(
+        df,
+        x=TEMP_COL,
+        nbins=40,
+        labels={TEMP_COL: "Température (°C)"}
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+if show_precip:
+    st.markdown("### 🌧️ Précipitations moyennes par pays")
+    if "precip_mm" in df.columns:
+        df_precip = df.groupby("country", as_index=False)["precip_mm"].mean()
+        fig = px.bar(
+            df_precip,
+            x="country",
+            y="precip_mm",
+            labels={"precip_mm": "Précipitations (mm)", "country": "Pays"}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Colonne 'precip_mm' absente.")
+
+if show_wind:
+    st.markdown("### 💨 Vent : vitesse vs rafales")
+    if "windspeed_10m" in df.columns and "windgusts_10m" in df.columns:
+        fig = px.scatter(
+            df,
+            x="windspeed_10m",
+            y="windgusts_10m",
+            labels={
+                "windspeed_10m": "Vitesse du vent (m/s)",
+                "windgusts_10m": "Rafales (m/s)"
+            }
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Colonnes de vent manquantes.")
+
+# ======================
+# 8️⃣ Footer
+# ======================
+st.markdown("---")
+st.caption("🌍 Weather Dashboard — Streamlit | Data Science Project")
