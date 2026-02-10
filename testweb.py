@@ -25,7 +25,6 @@ import pandas as pd
 import streamlit as st
 
 @st.cache_data
-@st.cache_data
 def load_data(url=None, needed_columns=None, chunk_size=100000):
     """
     Load a large CSV in chunks from a URL (e.g., Google Drive direct download),
@@ -67,8 +66,6 @@ def load_data(url=None, needed_columns=None, chunk_size=100000):
         df['quarter'] = df['date'].dt.quarter
     
     return df
-
-
 
 # --------------------------
 # USAGE EXAMPLE
@@ -324,5 +321,6 @@ elif plot_choice == "Vitesse du vent — heatmap":
     plot_wind_heatmap()
 elif plot_choice == "Top 20 pays - vitesse du vent":
     plot_top20_wind()
+
 
 
