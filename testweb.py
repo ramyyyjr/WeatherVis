@@ -26,6 +26,7 @@ import pandas as pd
 import streamlit as st
 
 @st.cache_data
+@st.cache_data
 def load_data(url=None, needed_columns=None, chunk_size=100000):
     """
     Load a large CSV in chunks from a URL (e.g., Google Drive direct download),
@@ -34,19 +35,30 @@ def load_data(url=None, needed_columns=None, chunk_size=100000):
     if url is None:
         # fallback: direct download from Google Drive
         file_id = "1Lxy0FxQ4KkM2hNWp8I6v_W_4HHnczWZs"
-        url = f"https://drive.google.com/uc?id={file_id}"
+        url = f"https://drive.google.com/uc?id={file_id}&export=download"
 
-    chunks = []
+    # Download CSV content
+    response = requests.get(url)
+    if response.status_code != 200:
+        st.error(f"Failed to download CSV. Status code: {response.status_code}")
+        return pd.DataFrame()  # return empty df
     
-    # Read CSV in chunks
-    for chunk in pd.read_csv(url, chunksize=chunk_size, low_memory=False, encoding='utf-8', on_bad_lines='skip'):
+    # Read CSV in chunks from downloaded content
+    chunks = []
+    for chunk in pd.read_csv(io.StringIO(response.content.decode('utf-8')),
+                             chunksize=chunk_size,
+                             low_memory=False,
+                             on_bad_lines='skip'):
         if needed_columns:
             chunk = chunk[[c for c in needed_columns if c in chunk.columns]]
         chunks.append(chunk)
     
+    if not chunks:
+        st.warning("Dataset is empty! Check CSV path or URL.")
+        return pd.DataFrame()
+    
     # Combine all chunks
     df = pd.concat(chunks, ignore_index=True)
-    return df
 
     # Parse date column
     if 'date' in df.columns:
@@ -313,3 +325,4 @@ elif plot_choice == "Vitesse du vent — heatmap":
     plot_wind_heatmap()
 elif plot_choice == "Top 20 pays - vitesse du vent":
     plot_top20_wind()
+
