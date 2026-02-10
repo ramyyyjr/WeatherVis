@@ -32,8 +32,9 @@ def load_data(url=None, needed_columns=None, chunk_size=100000):
     keeping only the necessary columns to save memory.
     """
     if url is None:
-        # fallback local file
-        url = "history.csv"
+        # fallback: direct download from Google Drive
+        file_id = "1Lxy0FxQ4KkM2hNWp8I6v_W_4HHnczWZs"
+        url = f"https://drive.google.com/uc?id={file_id}"
 
     chunks = []
     
@@ -45,7 +46,8 @@ def load_data(url=None, needed_columns=None, chunk_size=100000):
     
     # Combine all chunks
     df = pd.concat(chunks, ignore_index=True)
-    
+    return df
+
     # Parse date column
     if 'date' in df.columns:
         df['date'] = pd.to_datetime(df['date'], errors='coerce')
@@ -54,6 +56,7 @@ def load_data(url=None, needed_columns=None, chunk_size=100000):
         df['quarter'] = df['date'].dt.quarter
     
     return df
+
 
 
 # --------------------------
