@@ -5,11 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
-import requests
-import io
 import gdown
 import os
-
 
 # ======================
 # 1️⃣ Page config
@@ -30,7 +27,6 @@ st.title("🌡️ Dashboard Climat — Analyse Température et Météo")
 def load_data_from_folder(folder_id, needed_columns=None):
     folder_path = "data"
 
-    # Download folder (only once because of cache)
     if not os.path.exists(folder_path):
         gdown.download_folder(
             id=folder_id,
@@ -57,7 +53,6 @@ def load_data_from_folder(folder_id, needed_columns=None):
 
     df = pd.concat(dfs, ignore_index=True)
 
-    # Parse date
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
         df["year"] = df["date"].dt.year
@@ -86,9 +81,9 @@ if df.empty:
 TEMP_COL = "temp_mean_c_approx"
 
 # ======================
-# 4️⃣ Sidebar Filters
+# 4️⃣ Sidebar filters
 # ======================
-st.sidebar.header("Filtres")
+st.sidebar.header("🔎 Filtres")
 
 cities = np.insert(df["capital"].dropna().unique(), 0, "Toutes")
 city = st.sidebar.selectbox("Ville :", cities)
@@ -96,27 +91,6 @@ city = st.sidebar.selectbox("Ville :", cities)
 year_min, year_max = int(df["year"].min()), int(df["year"].max())
 year_range = st.sidebar.slider("Années :", year_min, year_max, (year_min, year_max))
 
-plot_choice = st.sidebar.selectbox("Visualisation :", [
-    "Distribution des températures",
-    "Température moyenne par année",
-    "Top 10 villes les plus chaudes",
-    "Top 10 villes les plus froides",
-    "Évolution d'une ville",
-    "Température moyenne par mois",
-    "Top 30 villes × mois (heatmap)",
-    "Distribution par mois (boxplot)",
-    "Précipitations moyennes par mois",
-    "Densité température par année (hexbin)",
-    "Température (mois × année) - contour",
-    "Jours ≤ 0°C par année",
-    "Durée du soleil par mois (polar)",
-    "Vitesse du vent — heatmap",
-    "Top 20 pays - vitesse du vent"
-])
-
-# ======================
-# 5️⃣ Data filtering
-# ======================
 def filter_df(data):
     d = data[
         (data["year"] >= year_range[0]) &
@@ -132,7 +106,7 @@ st.subheader("Aperçu des données")
 st.dataframe(dff.head())
 
 # ======================
-# 6️⃣ Column detection
+# 5️⃣ Column detection
 # ======================
 def find_col(keys):
     for c in df.columns:
@@ -146,76 +120,110 @@ DAYLIGHT_COL = find_col(["daylight", "sun"])
 WIND_COL = find_col(["windspeed"])
 
 # ======================
-# 7️⃣ Plots
+# 6️⃣ Sidebar checkboxes
 # ======================
-if plot_choice == "Distribution des températures":
+st.sidebar.header("📊 Visualisations")
+
+show_dist = st.sidebar.checkbox("Distribution des températures")
+show_yearly = st.sidebar.checkbox("Température moyenne par année")
+show_hot = st.sidebar.checkbox("Top 10 villes les plus chaudes")
+show_cold = st.sidebar.checkbox("Top 10 villes les plus froides")
+show_city = st.sidebar.checkbox("Évolution d'une ville")
+show_monthly = st.sidebar.checkbox("Température moyenne par mois")
+show_heatmap = st.sidebar.checkbox("Top 30 villes × mois (heatmap)")
+show_box = st.sidebar.checkbox("Distribution par mois (boxplot)")
+show_precip = st.sidebar.checkbox("Précipitations moyennes par mois")
+show_hex = st.sidebar.checkbox("Densité température par année")
+show_contour = st.sidebar.checkbox("Température (mois × année)")
+show_freeze = st.sidebar.checkbox("Jours ≤ 0°C par année")
+show_daylight = st.sidebar.checkbox("Durée du soleil par mois")
+show_wind_heat = st.sidebar.checkbox("Vitesse du vent — heatmap")
+show_wind_top = st.sidebar.checkbox("Top 20 pays - vitesse du vent")
+
+# ======================
+# 7️⃣ Visualisations
+# ======================
+if show_dist:
+    st.subheader("Distribution des températures")
     fig = px.histogram(dff, x=TEMP_COL, nbins=50)
     st.plotly_chart(fig, use_container_width=True)
 
-elif plot_choice == "Température moyenne par année":
+if show_yearly:
+    st.subheader("Température moyenne par année")
     yearly = dff.groupby("year")[TEMP_COL].mean().reset_index()
     fig = px.line(yearly, x="year", y=TEMP_COL, markers=True)
     st.plotly_chart(fig, use_container_width=True)
 
-elif plot_choice == "Top 10 villes les plus chaudes":
-    top = df.groupby("capital")[TEMP_COL].mean().sort_values(ascending=False).head(10)
-    st.bar_chart(top)
+if show_hot:
+    st.subheader("Top 10 villes les plus chaudes")
+    st.bar_chart(df.groupby("capital")[TEMP_COL].mean().sort_values(ascending=False).head(10))
 
-elif plot_choice == "Top 10 villes les plus froides":
-    top = df.groupby("capital")[TEMP_COL].mean().sort_values().head(10)
-    st.bar_chart(top)
+if show_cold:
+    st.subheader("Top 10 villes les plus froides")
+    st.bar_chart(df.groupby("capital")[TEMP_COL].mean().sort_values().head(10))
 
-elif plot_choice == "Évolution d'une ville":
-    city_sel = st.sidebar.selectbox("Choisir une ville", df["capital"].dropna().unique())
-    dcity = df[df["capital"] == city_sel]
-    fig = px.line(dcity, x="date", y=TEMP_COL)
+if show_city:
+    st.subheader("Évolution d'une ville")
+    city_sel = st.selectbox("Ville :", df["capital"].dropna().unique(), key="city_plot")
+    fig = px.line(df[df["capital"] == city_sel], x="date", y=TEMP_COL)
     st.plotly_chart(fig, use_container_width=True)
 
-elif plot_choice == "Température moyenne par mois":
-    monthly = dff.groupby("month")[TEMP_COL].mean()
-    st.line_chart(monthly)
+if show_monthly:
+    st.subheader("Température moyenne par mois")
+    st.line_chart(dff.groupby("month")[TEMP_COL].mean())
 
-elif plot_choice == "Top 30 villes × mois (heatmap)":
+if show_heatmap:
+    st.subheader("Top 30 villes × mois (heatmap)")
     pivot = df.pivot_table(TEMP_COL, "capital", "month", "mean")
     top30 = pivot.loc[pivot.mean(axis=1).sort_values(ascending=False).head(30).index]
     fig, ax = plt.subplots(figsize=(14, 8))
     sns.heatmap(top30, cmap="coolwarm", ax=ax)
     st.pyplot(fig)
 
-elif plot_choice == "Distribution par mois (boxplot)":
+if show_box:
+    st.subheader("Distribution par mois (boxplot)")
     fig, ax = plt.subplots(figsize=(12, 5))
     sns.boxplot(x=dff["month"], y=dff[TEMP_COL], ax=ax)
     st.pyplot(fig)
 
-elif plot_choice == "Précipitations moyennes par mois" and PRECIP_COL:
+if show_precip and PRECIP_COL:
+    st.subheader("Précipitations moyennes par mois")
     st.bar_chart(df.groupby("month")[PRECIP_COL].mean())
 
-elif plot_choice == "Densité température par année (hexbin)":
+if show_hex:
+    st.subheader("Densité température par année")
     fig, ax = plt.subplots()
-    hb = ax.hexbin(df["year"], df[TEMP_COL], gridsize=25)
+    ax.hexbin(df["year"], df[TEMP_COL], gridsize=25)
     st.pyplot(fig)
 
-elif plot_choice == "Température (mois × année) - contour":
+if show_contour:
+    st.subheader("Température (mois × année)")
     pivot = df.pivot_table(TEMP_COL, "year", "month", "mean")
     fig, ax = plt.subplots()
-    cs = ax.contourf(pivot.columns, pivot.index, pivot.values, levels=20)
+    ax.contourf(pivot.columns, pivot.index, pivot.values, levels=20)
     st.pyplot(fig)
 
-elif plot_choice == "Jours ≤ 0°C par année":
-    freezing = (df[TEMP_COL] <= 0).groupby(df["year"]).sum()
-    st.bar_chart(freezing)
+if show_freeze:
+    st.subheader("Jours ≤ 0°C par année")
+    st.bar_chart((df[TEMP_COL] <= 0).groupby(df["year"]).sum())
 
-elif plot_choice == "Durée du soleil par mois" and DAYLIGHT_COL:
+if show_daylight and DAYLIGHT_COL:
+    st.subheader("Durée du soleil par mois")
     st.line_chart(df.groupby("month")[DAYLIGHT_COL].mean())
 
-elif plot_choice == "Vitesse du vent — heatmap" and WIND_COL:
+if show_wind_heat and WIND_COL:
+    st.subheader("Vitesse du vent — heatmap")
     pivot = df.pivot_table(WIND_COL, "year", "month", "mean")
     fig, ax = plt.subplots()
     sns.heatmap(pivot, cmap="Blues", ax=ax)
     st.pyplot(fig)
 
-elif plot_choice == "Top 20 pays - vitesse du vent" and WIND_COL:
+if show_wind_top and WIND_COL:
+    st.subheader("Top 20 pays - vitesse du vent")
     country_col = "country" if "country" in df.columns else "capital"
-    top20 = df.groupby(country_col)[WIND_COL].mean().sort_values(ascending=False).head(20)
-    st.bar_chart(top20)
-
+    st.bar_chart(
+        df.groupby(country_col)[WIND_COL]
+        .mean()
+        .sort_values(ascending=False)
+        .head(20)
+    )
